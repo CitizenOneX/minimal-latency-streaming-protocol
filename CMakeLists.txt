@@ -4,6 +4,12 @@ project(
     mlsp
 )
 
+if(WIN32)
+  add_compile_definitions(_WINDOWS)
+  find_library(WSOCK32_LIBRARY wsock32)
+  find_library(WS2_32_LIBRARY ws2_32)
+endif()
+
 add_library(mlsp mlsp.c)
 install(TARGETS mlsp DESTINATION lib)
 install(FILES mlsp.h DESTINATION include)

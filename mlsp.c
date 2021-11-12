@@ -15,9 +15,15 @@
 #include <stdlib.h> //malloc
 #include <string.h> //memcpy
 #include <errno.h> //errno
-#include <unistd.h> //close
-#include <netinet/in.h> //socaddr_in
-#include <arpa/inet.h> //inet_pton, etc
+
+#ifdef _WINDOWS
+  #include <WinSock2.h>
+  #include <WS2tcpip.h>
+#else
+  #include <unistd.h> //close
+  #include <netinet/in.h> //socaddr_in
+  #include <arpa/inet.h> //inet_pton, etc
+#endif
 
 enum {PACKET_MAX_PAYLOAD=1400, PACKET_HEADER_SIZE=8};
 
@@ -64,7 +70,11 @@ struct mlsp_collected_frame
 
 struct mlsp
 {
+	#ifdef _WINDOWS
+	SOCKET socket_udp;
+	#else
 	int socket_udp;
+	#endif
 	struct sockaddr_in address_udp;
 	int subframes; //number of logical subframes in frame
 	uint16_t framenumber; //currently assembled frame framenumber
@@ -101,8 +111,21 @@ static struct mlsp *mlsp_init_common(const struct mlsp_config *config)
 	*m = zero_mlsp; //set all members of dynamically allocated struct to 0 in a portable way
 	m->subframes = config->subframes > 0 ? config->subframes : 1;
 
+	// Windows only: call WSAStartup
+	#ifdef _WINDOWS
+	WSADATA wsaData;
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
+		fprintf(stderr, "mlsp: WSAStartup failed with error: %d\n", WSAGetLastError());
+		return NULL;
+	}
+	#endif 
+
 	//create a UDP socket
-	if ( (m->socket_udp = socket(AF_INET, SOCK_DGRAM | SOCK_CLOEXEC, IPPROTO_UDP) ) == -1)
+	int stype = SOCK_DGRAM;
+	#ifdef SOCK_CLOEXEC  // not available in Winsock2
+	stype |= SOCK_CLOEXEC;
+	#endif
+	if ( (m->socket_udp = socket(AF_INET, stype, IPPROTO_UDP) ) == -1)
 	{
 		fprintf(stderr, "mlsp: failed to initialize UDP socket\n");
 		return mlsp_close_and_return_null(m);
@@ -143,7 +166,6 @@ struct mlsp *mlsp_init_client(const struct mlsp_config *config)
 struct mlsp *mlsp_init_server(const struct mlsp_config *config)
 {
 	struct mlsp *m=mlsp_init_common(config);
-	struct timeval tv;
 
 	if(m == NULL)
 		return NULL;
@@ -153,11 +175,17 @@ struct mlsp *mlsp_init_server(const struct mlsp_config *config)
 
 	//set timeout if necessary
 	if(config->timeout_ms > 0)
-	{	//TODO - simplify
+	{
+		#ifdef _WINDOWS
+		DWORD dw = config->timeout_ms;
+		if (setsockopt(m->socket_udp, SOL_SOCKET, SO_RCVTIMEO, (char *) &dw, sizeof(dw)) < 0)
+		#else
+		//TODO - simplify
+		struct timeval tv;
 		tv.tv_sec = config->timeout_ms / 1000;
-		tv.tv_usec = (config->timeout_ms-(config->timeout_ms/1000)*1000) * 1000;
-
-		if (setsockopt(m->socket_udp, SOL_SOCKET, SO_RCVTIMEO,&tv,sizeof(tv)) < 0)
+		tv.tv_usec = (config->timeout_ms - (config->timeout_ms / 1000) * 1000) * 1000;
+		if (setsockopt(m->socket_udp, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
+		#endif
 		{
 			fprintf(stderr, "mlsp: failed to set timetout for socket\n");
 			return mlsp_close_and_return_null(m);
@@ -178,7 +206,11 @@ void mlsp_close(struct mlsp *m)
 	if(m == NULL)
 		return;
 
+	#ifdef _WINDOWS
+	if (closesocket(m->socket_udp) == -1)
+	#else
 	if(close(m->socket_udp) == -1)
+	#endif
 		fprintf(stderr, "mlsp: error while closing socket\n");
 
 	for(int i=0;i<m->subframes;++i)
