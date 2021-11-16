@@ -80,7 +80,7 @@ struct mlsp
 	uint16_t framenumber; //currently assembled frame framenumber
 	uint8_t data[PACKET_HEADER_SIZE + PACKET_MAX_PAYLOAD]; //single library level packet
 	struct mlsp_collected_frame collected[MLSP_MAX_SUBFRAMES]; //frame during collection
-	uint8_t transffered_subframes[MLSP_MAX_SUBFRAMES]; //flags received/sent subframes
+	uint8_t transferred_subframes[MLSP_MAX_SUBFRAMES]; //flags received/sent subframes
 	struct mlsp_frame frame[MLSP_MAX_SUBFRAMES]; //single user level packet
 };
 
@@ -237,9 +237,9 @@ int mlsp_send(struct mlsp *m, const struct mlsp_frame *frame, uint8_t subframe)
 	//last packet is smaller unless it is exactly MAX_PAYLOAD size
 	const uint16_t last_packet_size = ((data_size % PACKET_MAX_PAYLOAD) !=0 ) ? data_size % PACKET_MAX_PAYLOAD : PACKET_MAX_PAYLOAD;
 
-	if(m->transffered_subframes[subframe])
+	if(m->transferred_subframes[subframe])
 	{
-		memset(m->transffered_subframes, 0, MLSP_MAX_SUBFRAMES);
+		memset(m->transferred_subframes, 0, MLSP_MAX_SUBFRAMES);
 		++m->framenumber;
 	}
 
@@ -260,7 +260,7 @@ int mlsp_send(struct mlsp *m, const struct mlsp_frame *frame, uint8_t subframe)
 			return MLSP_ERROR;
 	}
 
-	m->transffered_subframes[subframe] = 1;
+	m->transferred_subframes[subframe] = 1;
 
 	return MLSP_OK;
 }
@@ -329,12 +329,12 @@ const struct mlsp_frame *mlsp_receive(struct mlsp *m, int *error)
 
 		if(collected->collected_packets == udp.packets)
 		{
-			m->transffered_subframes[udp.subframe] = 1;
+			m->transferred_subframes[udp.subframe] = 1;
 
 			int received = 0;
 
 			for(int i=0;i<udp.subframes;++i)
-				received += m->transffered_subframes[i];
+				received += m->transferred_subframes[i];
 
 			if(received != udp.subframes)
 				continue;
@@ -411,7 +411,7 @@ static void mlsp_new_frame(struct mlsp *m, uint16_t framenumber)
 {
 	if(m->framenumber)
 		for(int s=0;s<m->subframes;++s)
-			if(!m->transffered_subframes[s] && m->collected[s].packets)
+			if(!m->transferred_subframes[s] && m->collected[s].packets)
 			{
 				fprintf(stderr, "mlsp: ignoring incomplete frame %d/%d: %d/%d\n", framenumber, s,
 				m->collected[s].collected_packets, m->collected[s].packets);
@@ -422,7 +422,7 @@ static void mlsp_new_frame(struct mlsp *m, uint16_t framenumber)
 			}
 
 	m->framenumber = framenumber;
-	memset(m->transffered_subframes, 0, MLSP_MAX_SUBFRAMES);
+	memset(m->transferred_subframes, 0, MLSP_MAX_SUBFRAMES);
 
 	for(int s=0;s<m->subframes;++s)
 	{
