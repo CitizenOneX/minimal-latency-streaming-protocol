@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h> //usleep
 
 int main(int argc, char* argv[])
 {
@@ -52,10 +53,11 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			if (i % 1000 == 0) fprintf(stderr, "Frame %d sent, size=%d\n", i, network_frame.size);
+			if (i % 100 == 0) fprintf(stderr, "Frame %d sent, size=%d\n", i, network_frame.size);
 		}
 
 		i++;
+		usleep(10000); //10ms between sending frames
 	}
 
 	mlsp_close(streamer);

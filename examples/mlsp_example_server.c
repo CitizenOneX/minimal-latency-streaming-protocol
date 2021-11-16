@@ -47,7 +47,7 @@ int main(int argc, char* argv[])
 		}
 		else
 		{
-			if (i % 1000 == 0) fprintf(stderr, "Frame %d received, size=%d\n", i, streamer_frame->size);
+			if (i % 100 == 0) fprintf(stderr, "Frame %d received, size=%d\n", i, streamer_frame->size);
 		}
 
 		//...
