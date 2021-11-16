@@ -20,7 +20,7 @@ The only buffering that is allowed is natural arising from sequece:
 
 ## Platforms
 
-Unix-like systems (due to network implementation, can be easily made cross-platform).
+Unix-like systems, and Windows (but no endianness checking/conversion.)
 
 ## State
 
