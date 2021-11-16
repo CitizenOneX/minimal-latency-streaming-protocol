@@ -13,7 +13,11 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h> //usleep
+#ifdef _WINDOWS
+  #include <windows.h>//Sleep()
+#else
+  #include <unistd.h> //usleep()
+#endif // #ifdef _WINDOWS
 
 int main(int argc, char* argv[])
 {
@@ -57,7 +61,11 @@ int main(int argc, char* argv[])
 		}
 
 		i++;
+#ifdef _WINDOWS
+		Sleep(10);
+#else
 		usleep(10000); //10ms between sending frames
+#endif
 	}
 
 	mlsp_close(streamer);
