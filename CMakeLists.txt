@@ -15,6 +15,8 @@ add_library(mlsp mlsp.c)
 install(TARGETS mlsp DESTINATION lib)
 install(FILES mlsp.h DESTINATION include)
 
+target_link_libraries(mlsp ${EXTRA_WINSOCK_LIBS})
+
 # sample mlsp client and server - no need to build if you just need the lib
 #add_executable(mlsp-example-server examples/mlsp_example_server.c)
 #target_link_libraries(mlsp-example-server mlsp ${EXTRA_WINSOCK_LIBS})
