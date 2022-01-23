@@ -33,7 +33,7 @@ enum {PACKET_MAX_PAYLOAD=1400, PACKET_HEADER_SIZE=8};
 //this constant allows reserving larger buffer for such case
 //this means that the library user may consume
 //library data without copying it even in such case
-enum {BUFFER_PADDING_SIZE = 32};
+enum {BUFFER_PADDING_SIZE = 64};
 
 /* packet structure
  * u16 framenumber
