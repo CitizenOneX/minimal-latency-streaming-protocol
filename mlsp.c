@@ -232,10 +232,12 @@ int mlsp_send(struct mlsp *m, const struct mlsp_frame *frame, uint8_t subframe)
 	const uint8_t *data = frame->data;
 	const uint32_t data_size = frame->size;
 
+	//in the case of data_size==0 (empty placeholder subframe) we still need to send a packet with a header and
+	//zero data, so set packets and last_packet_size here
 	//if size is not divisible by MAX_PAYLOAD we have additional packet with the rest
-	const uint16_t packets = data_size / PACKET_MAX_PAYLOAD + ((data_size % PACKET_MAX_PAYLOAD) != 0);
+	const uint16_t packets = data_size ? data_size / PACKET_MAX_PAYLOAD + ((data_size % PACKET_MAX_PAYLOAD) != 0) : 1;
 	//last packet is smaller unless it is exactly MAX_PAYLOAD size
-	const uint16_t last_packet_size = ((data_size % PACKET_MAX_PAYLOAD) !=0 ) ? data_size % PACKET_MAX_PAYLOAD : PACKET_MAX_PAYLOAD;
+	const uint16_t last_packet_size = data_size ? ((data_size % PACKET_MAX_PAYLOAD) != 0) ? data_size % PACKET_MAX_PAYLOAD : PACKET_MAX_PAYLOAD : 0;
 
 	if(m->transferred_subframes[subframe])
 	{
