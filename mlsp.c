@@ -187,9 +187,19 @@ struct mlsp *mlsp_init_server(const struct mlsp_config *config)
 		if (setsockopt(m->socket_udp, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) < 0)
 		#endif
 		{
-			fprintf(stderr, "mlsp: failed to set timetout for socket\n");
+			fprintf(stderr, "mlsp: failed to set timeout for socket\n");
 			return mlsp_close_and_return_null(m);
 		}
+	}
+
+	// make sure the recv buffer size is sensible, default on my machine was 64k
+	// which was a bit small once audio was added
+	int optval = 262144;
+	int optlen = sizeof(optval);
+	if (setsockopt(m->socket_udp, SOL_SOCKET, SO_RCVBUF, (char*)&optval, optlen) < 0)
+	{
+		fprintf(stderr, "mlsp: failed to set rcvbuf size for socket\n");
+		return mlsp_close_and_return_null(m);
 	}
 
 	if( bind(m->socket_udp, (struct sockaddr*)&m->address_udp, sizeof(m->address_udp) ) == -1 )
@@ -396,7 +406,7 @@ static int mlsp_decode_header(const struct mlsp *m, int size, struct mlsp_packet
 		return MLSP_ERROR;
 	}
 
-	udp->data = data + PACKET_HEADER_SIZE;
+	udp->data = udp->size ? data + PACKET_HEADER_SIZE : NULL; // set data pointer to NULL for empty packet
 	return MLSP_OK;
 }
 
